@@ -6,7 +6,7 @@ from alpaca_trade_api.rest import REST
 # Alpaca Credentials (in production, store these securely in environment variables)
 api_key = "PK0OYR5V8WPMEL0794SS"
 secret_key = "Os8X7hc4nsnF6YpP15gnUifRgdiwpVYplMkWiKeP"
-BASE_URL = "https://paper-api.alpaca.markets"  # Paper trading URL
+BASE_URL = "https://paper-api.alpaca.markets/v2"  # Paper trading URL
 
 # Create Alpaca API instance
 api = REST(api_key, secret_key, BASE_URL)

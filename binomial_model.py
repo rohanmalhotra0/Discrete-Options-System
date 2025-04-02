@@ -1,6 +1,11 @@
 import numpy as np
 from functools import wraps
 from time import time
+import matplotlib.pyplot as plt
+import json
+from datetime import date, timedelta
+import schedule
+import time as t  # renamed to avoid conflict with time() above
 
 def timing(f):
     @wraps(f)
@@ -58,3 +63,66 @@ def american_slow_tree(K, T, S0, r, N, u, d, opttype='P'):
                 C[j] = max(C[j], stock_price - K)
     
     return C[0]
+
+def build_binomial_tree_json(S0, u, d, N):
+    """
+    Recursively builds a JSON structure representing the binomial tree.
+    
+    Each node includes:
+      - id: a unique node identifier
+      - time_step: the current step in the tree
+      - price: the computed stock price at that node
+      - children: a list of child nodes (empty if at final step)
+    """
+    def node(time_step, j):
+        price = S0 * (u ** j) * (d ** (time_step - j))
+        node_id = f"node_{time_step}_{j}"
+        children = []
+        if time_step < N:
+            children.append(node(time_step + 1, j))
+            children.append(node(time_step + 1, j + 1))
+        return {"id": node_id, "time_step": time_step, "price": price, "children": children}
+    
+    return node(0, 0)
+
+def update_daily():
+    """
+    This function updates the option data and binomial tree JSON.
+    It:
+      - Computes the remaining time to expiry T (in years) based on a fixed expiry date.
+      - Calculates the American option fair price.
+      - Constructs a JSON representation of the binomial tree.
+      - Exports the JSON to a file.
+      - (Optionally) Plots the tree for visual reference.
+    """
+    # --- Configuration & Dynamic Parameters ---
+    S0 = 100.0    # Current underlying stock price (replace with live data as needed)
+    K = 100.0     # Strike price
+    r = 0.06      # Annual risk-free rate
+    N = 5         # Number of time steps (can be increased for finer resolution)
+    u = 1.1       # Up-factor per step
+    d = 1 / u     # Down-factor (to ensure a recombining tree)
+    opttype = 'C' # Option type: 'C' for Call (or 'P' for Put)
+    
+    # --- Compute Time to Expiry ---
+    # Set a fixed expiry date (for example, one year from when the option was initiated)
+    expiry_date = date(2026, 4, 2)  # Replace with your actual fixed expiry date
+    today = date.today()
+    T = (expiry_date - today).days / 365.0
+    print(f"Today's date: {today}, Time to expiry T: {T:.4f} years")
+    
+    # --- Calculate Option Price ---
+    option_price = american_slow_tree(K, T, S0, r, N, u, d, opttype=opttype)
+    print("American Option Fair Price:", option_price)
+    
+    # --- Build and Export JSON for Binomial Tree ---
+    tree_data = build_binomial_tree_json(S0, u, d, N)
+    with open("binomial_tree.json", "w") as f:
+        json.dump(tree_data, f, indent=2)
+    print("Exported binomial_tree.json")
+    
+   
+
+
+
+
